@@ -260,3 +260,6 @@ run.bat
 analysis/
 websocket_frames.pkl
 replay/
+
+# selenium cache
+ChromeUserData/
