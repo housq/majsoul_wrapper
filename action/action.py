@@ -3,18 +3,41 @@
 import os
 import time
 from typing import List, Tuple
+import io
+import functools
+import inspect
 
 import cv2
-import pyautogui
 import numpy as np
 
 from .classifier import Classify
 from ..sdk import Operation
 
-pyautogui.PAUSE = 0         # 函数执行后暂停时间
-pyautogui.FAILSAFE = False   # 开启鼠标移动到左上角自动退出
+from PIL import Image
+
+from selenium.webdriver.chrome.options import Options
+from selenium import webdriver
+from selenium.webdriver import ActionChains
+from selenium.webdriver.common.by import By
+
+browser : webdriver.Chrome = None
 
 DEBUG = False               # 是否显示检测中间结果
+PRINT_LOG = True  # whether print args when enter handler
+
+def dump_args(func):
+    #Decorator to print function call details - parameters names and effective values.
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        if PRINT_LOG:
+            func_args = inspect.signature(func).bind(*args, **kwargs).arguments
+            func_args_str = ', '.join('{} = {!r}'.format(*item)
+                                      for item in func_args.items())
+            func_args_str = re.sub(r' *self.*?=.*?, *', '', func_args_str)
+            #print(f'{func.__module__}.{func.__qualname__} ( {func_args_str} )')
+            print(f'{func.__name__} ({func_args_str})')
+        return func(*args, **kwargs)
+    return wrapper
 
 
 def PosTransfer(pos, M: np.ndarray) -> np.ndarray:
@@ -136,10 +159,42 @@ def getHomographyMatrix(img1, img2, threshold=0.0):
             return M
     return None
 
+_width = None
 
-def screenShot():
-    img = np.asarray(pyautogui.screenshot())
-    return cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+def screenShot(calibration=False):
+    global _width
+    if calibration:
+        body = browser.find_element(by=By.XPATH, value="/html")
+        print(body.size)
+        _width = body.size['width']
+    screenshot_png = browser.get_screenshot_as_png()
+    nparr = np.fromstring(screenshot_png, np.uint8)
+    screenshot = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+    h0, w0, _ = screenshot.shape
+    screenshot = cv2.resize(screenshot,(_width, int(_width * h0 / w0)))
+    # screenshot = Image.open(io.BytesIO(screenshot_png))
+    # img = np.asarray(screenshot)
+    # print(img.dtype)
+    # print(img.shape)
+    # return cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
+    return screenshot
+
+def clickAt(x, y):
+    print("Point to click", x, y)
+    actionChains = ActionChains(browser)
+    body = browser.find_element(by=By.XPATH, value="/html")
+    actionChains.move_to_element_with_offset(body, x, y)
+    actionChains.pause(0.1)
+    actionChains.click()
+    actionChains.perform()
+
+def moveTo(x, y):
+    actionChains = ActionChains(browser)
+    body = browser.find_element(by=By.XPATH, value="/html")
+    actionChains.move_to_element_with_offset(body, x, y)
+    actionChains.pause(0.1)
+    actionChains.perform()
+
 
 
 class Layout:
@@ -152,7 +207,8 @@ class Layout:
 
 class GUIInterface:
 
-    def __init__(self):
+    def __init__(self, chrome_arguments=[]):
+        self.startWebDriver(chrome_arguments)
         self.M = None  # Homography matrix from (1920,1080) to real window
         # load template imgs
         join = os.path.join
@@ -172,25 +228,39 @@ class GUIInterface:
         # load classify model
         self.classify = Classify()
 
+    def startWebDriver(self, chrome_arguments):
+        global browser
+        chrome_options = Options()
+        chrome_options.add_argument('--proxy-server=127.0.0.1:8080')
+        chrome_options.add_argument('--ignore-certificate-errors')
+        for arg in chrome_arguments:
+            chrome_options.add_argument(arg)
+        # chrome_options.add_argument('--user-data-dir=ChromeUserData')
+        # chrome_options.add_argument('--profile-directory=Majsoul')
+        browser = webdriver.Chrome(options=chrome_options)
+        # browser.get('https://game.maj-soul.com/1/')   
+
+    @dump_args
     def forceTiaoGuo(self):
         # 如果跳过按钮在屏幕上则强制点跳过，否则NoEffect
         self.clickButton(self.tiaoguoImg, similarityThreshold=0.7)
 
+    @dump_args
     def actionDiscardTile(self, tile: str):
         L = self._getHandTiles()
+        print("Hand tiles", L)
+        print("tile to play", tile)
         for t, (x, y) in L:
             if t == tile:
-                pyautogui.moveTo(x=x, y=y)
-                time.sleep(0.3)
-                pyautogui.click(x=x, y=y, button='left')
-                time.sleep(1)
+                clickAt(x, y)
                 # out of screen
-                pyautogui.moveTo(x=self.waitPos[0], y=self.waitPos[1])
+                # moveTo(self.waitPos[0], self.waitPos[1])
                 return True
         raise Exception(
             'GUIInterface.discardTile tile not found. L:', L, 'tile:', tile)
         return False
 
+    @dump_args
     def actionChiPengGang(self, type_: Operation, tiles: List[str]):
         if type_ == Operation.NoEffect:
             self.clickButton(self.tiaoguoImg)
@@ -201,21 +271,27 @@ class GUIInterface:
         elif type_ in (Operation.MingGang, Operation.JiaGang):
             self.clickButton(self.gangImg)
 
+    @dump_args
     def actionLiqi(self, tile: str):
         self.clickButton(self.liqiImg)
         time.sleep(0.5)
         self.actionDiscardTile(tile)
 
+    @dump_args
     def actionHu(self):
         self.clickButton(self.huImg)
 
+    @dump_args
     def actionZimo(self):
         self.clickButton(self.zimoImg)
 
     def calibrateMenu(self):
         # if the browser is on the initial menu, set self.M and return to True
         # if not return False
-        self.M = getHomographyMatrix(self.menuImg, screenShot(), threshold=0.7)
+        try:
+            self.M = getHomographyMatrix(self.menuImg, screenShot(calibration=True), threshold=0.7)
+        except Exception:
+            print(Exception)
         result = type(self.M) != type(None)
         if result:
             self.waitPos = np.int32(PosTransfer([100, 100], self.M))
@@ -226,9 +302,10 @@ class GUIInterface:
         result = []
         assert(type(self.M) != type(None))
         screen_img1 = screenShot()
-        time.sleep(0.5)
-        screen_img2 = screenShot()
-        screen_img = np.minimum(screen_img1, screen_img2)  # 消除高光动画
+        # time.sleep(0.5)
+        screen_img = screen_img1
+        # screen_img2 = screenShot()
+        # screen_img = np.minimum(screen_img1, screen_img2)  # 消除高光动画
         img = screen_img.copy()     # for calculation
         start = np.int32(PosTransfer([235, 1002], self.M))
         O = PosTransfer([0, 0], self.M)
@@ -278,9 +355,8 @@ class GUIInterface:
         dst = img[y:y+n, x:x+m].copy()
         dst[templ == 0] = 0
         if Similarity(templ, dst) >= similarityThreshold:
-            pyautogui.click(x=x+x0+m//2, y=y+y0+n//2, duration=0.2)
-            time.sleep(0.5)
-            pyautogui.moveTo(x=self.waitPos[0], y=self.waitPos[1])
+            clickAt(x+x0+m//2, y+y0+n//2)
+            moveTo(self.waitPos[0], self.waitPos[1])
 
     def clickCandidateMeld(self, tiles: List[str]):
         # 有多种不同的吃碰方法，二次点击选择
@@ -326,9 +402,8 @@ class GUIInterface:
         for i in range(0, len(result), 2):
             x, y = result[i][1]
             if tuple(sorted([result[i][0], result[i+1][0]])) == tiles:
-                pyautogui.click(x=x, y=y, duration=0.2)
-                time.sleep(1)
-                pyautogui.moveTo(x=self.waitPos[0], y=self.waitPos[1])
+                clickAt(x, y)
+                moveTo(self.waitPos[0], self.waitPos[1])
                 return True
         raise Exception('combination not found, tiles:',
                         tiles, ' combination:', result)
@@ -347,24 +422,26 @@ class GUIInterface:
                 return True
             else:
                 print('Similarity:', S)
-                pyautogui.click(x=x, y=y, duration=0.5)
+                clickAt(x, y)
 
     def actionBeginGame(self, level: int):
         # 从开始界面点击匹配对局, level=0~4 (铜/银/金/玉/王座之间)
         time.sleep(2)
         x, y = np.int32(PosTransfer(Layout.duanWeiChang, self.M))
-        pyautogui.click(x, y)
+        clickAt(x, y)
         time.sleep(2)
         if level == 4:
             # 王座之间在屏幕外面需要先拖一下
-            x, y = np.int32(PosTransfer(Layout.menuButtons[2], self.M))
-            pyautogui.moveTo(x, y)
-            time.sleep(1.5)
-            x, y = np.int32(PosTransfer(Layout.menuButtons[0], self.M))
-            pyautogui.dragTo(x, y)
-            time.sleep(1.5)
+            # TODO: selenium drag support for 王座之间
+            raise NotImplementedError()
+            # x, y = np.int32(PosTransfer(Layout.menuButtons[2], self.M))
+            # pyautogui.moveTo(x, y)
+            # time.sleep(1.5)
+            # x, y = np.int32(PosTransfer(Layout.menuButtons[0], self.M))
+            # pyautogui.dragTo(x, y)
+            # time.sleep(1.5)
         x, y = np.int32(PosTransfer(Layout.menuButtons[level], self.M))
-        pyautogui.click(x, y)
+        clickAt(x, y)
         time.sleep(2)
         x, y = np.int32(PosTransfer(Layout.menuButtons[0], self.M))  # 四人东
-        pyautogui.click(x, y)
+        clickAt(x, y)

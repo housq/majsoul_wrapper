@@ -59,18 +59,18 @@ class MajsoulHandler:
         '.lq.FastTest.checkNetworkDelay',       # 心跳包
         '.lq.FastTest.enterGame',               # 成功进入游戏
         '.lq.FastTest.fetchGamePlayerState',    # 检测所有玩家准备就绪
-        '.lq.FastTest.inputOperation',          # 发送出牌操作
-        '.lq.FastTest.inputChiPengGang',        # 发送吃碰杠操作
-        '.lq.FastTest.confirmNewRound',         # 确认下一轮
-        '.lq.PlayerLeaving',                    # 用户离线
-        '.lq.FastTest.clearLeaving',            # 用户离线后上线
+        #'.lq.FastTest.inputOperation',          # 发送出牌操作
+        #'.lq.FastTest.inputChiPengGang',        # 发送吃碰杠操作
+        #'.lq.FastTest.confirmNewRound',         # 确认下一轮
+        #'.lq.PlayerLeaving',                    # 用户离线
+        #'.lq.FastTest.clearLeaving',            # 用户离线后上线
         #'.lq.NotifyGameEndResult',
-        '.lq.NotifyGameFinishReward',
-        '.lq.NotifyActivityReward',
-        '.lq.NotifyLeaderboardPoint',
+        #'.lq.NotifyGameFinishReward',
+        #'.lq.NotifyActivityReward',
+        #'.lq.NotifyLeaderboardPoint',
         '.lq.FastTest.broadcastInGame',         # 表情
         '.lq.NotifyGameBroadcast',              # 表情
-        '.lq.NotifyPlayerConnectionState',
+        #'.lq.NotifyPlayerConnectionState',
     }
 
     no_effect_action = {
@@ -204,7 +204,7 @@ class MajsoulHandler:
         elif method in self.no_effect_method:
             return
         # mismatch
-        print('unknown', liqi_dict)
+        print(method, liqi_dict)
 
     #-------------------------Majsoul回调函数-------------------------
 

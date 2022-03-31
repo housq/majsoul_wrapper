@@ -136,13 +136,6 @@ def RPC_init():
 RPC_server = threading.Thread(target=RPC_init)
 RPC_server.start()
 
-# open chrome and liqi
-chrome_options = Options()
-chrome_options.add_argument('--proxy-server=127.0.0.1:8080')
-chrome_options.add_argument('--ignore-certificate-errors')
-browser = webdriver.Chrome(chrome_options=chrome_options)
-#browser.get('https://www.majsoul.com/1/')
-
 if __name__=='__main__':
     #回放websocket流量
     replay_path=os.path.join(os.path.dirname(__file__), 'websocket_frames.pkl')
