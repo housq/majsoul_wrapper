@@ -226,8 +226,12 @@ class GUIInterface:
         self.zimoImg = load('zimo.png')
         self.tiaoguoImg = load('tiaoguo.png')
         self.liqiImg = load('liqi.png')
+        # tile position cache
+        self.is_tile_position_cache_valid = False
+        self.hand_tile_pos = []
         # load classify model
         self.classify = Classify()
+        self.tiaoguo_pos = None
 
     def startWebDriver(self, chrome_arguments):
         global browser
@@ -247,16 +251,21 @@ class GUIInterface:
         self.clickButton(self.tiaoguoImg, similarityThreshold=0.7)
 
     @dump_args
-    def actionDiscardTile(self, tile: str):
-        L = self._getHandTiles()
-        print("Hand tiles", L)
-        print("tile to play", tile)
-        for t, (x, y) in L:
-            if t == tile:
+    def actionDiscardTile(self, tile: str, pos=-1):
+        retry = 3
+        while retry > 0:
+            if pos >= 0 and self.is_tile_position_cache_valid:
+                x, y = self.hand_tile_pos[pos]
                 clickAt(x, y)
-                # out of screen
-                # moveTo(self.waitPos[0], self.waitPos[1])
                 return True
+            L = self._getHandTiles()
+            print("Hand tiles", L)
+            print("tile to play", tile)
+            for t, (x, y) in L:
+                if t == tile:
+                    clickAt(x, y)
+                    return True
+            retry -= 1
         raise Exception(
             'GUIInterface.discardTile tile not found. L:', L, 'tile:', tile)
         return False
@@ -332,9 +341,27 @@ class GUIInterface:
             else:
                 fail += 1
             i += 1
+        # update cache
+        max_y = 0
+        for t, (x, y) in result:
+            max_y = max(y, max_y)
+        self.hand_tile_pos = []
+        for t, (x, y) in result:
+            self.hand_tile_pos.append((x, max_y))
+        self.is_tile_position_cache_valid = True
         return result
 
     def clickButton(self, buttonImg, similarityThreshold=0.0):
+        # 如果是跳过则点击保存的位置
+        if buttonImg is self.tiaoguoImg:
+            print("try tiaoguo cache")
+            try:
+                x, y = self.tiaoguo_pos
+                print("use tiaoguo cache", x, y)
+                clickAt(x, y)
+                return
+            except:
+                print("tiaoguo cache is not valid")
         # 点击吃碰杠胡立直自摸
         x0, y0 = np.int32(PosTransfer([0, 0], self.M))
         x1, y1 = np.int32(PosTransfer(Layout.size, self.M))
@@ -346,6 +373,8 @@ class GUIInterface:
         x0, y0 = np.int32(PosTransfer([595, 557], self.M))
         x1, y1 = np.int32(PosTransfer([1508, 912], self.M))
         img = screenShot()[y0:y1, x0:x1, :]
+        cv2.imshow('screenshot', img)
+        cv2.waitKey(50)
         T = cv2.matchTemplate(img, templ, cv2.TM_SQDIFF, mask=templ.copy())
         _, _, (x, y), _ = cv2.minMaxLoc(T)
         if DEBUG:
@@ -357,7 +386,9 @@ class GUIInterface:
         dst[templ == 0] = 0
         if Similarity(templ, dst) >= similarityThreshold:
             clickAt(x+x0+m//2, y+y0+n//2)
-            moveTo(self.waitPos[0], self.waitPos[1])
+            if buttonImg is self.tiaoguoImg:
+                self.tiaoguo_pos = (x+x0+m//2, y+y0+n//2)
+                print("set tiaoguo cache", x+x0+m//2, y+y0+n//2)
 
     def clickCandidateMeld(self, tiles: List[str]):
         # 有多种不同的吃碰方法，二次点击选择
@@ -404,7 +435,6 @@ class GUIInterface:
             x, y = result[i][1]
             if tuple(sorted([result[i][0], result[i+1][0]])) == tiles:
                 clickAt(x, y)
-                moveTo(self.waitPos[0], self.waitPos[1])
                 return True
         raise Exception('combination not found, tiles:',
                         tiles, ' combination:', result)
