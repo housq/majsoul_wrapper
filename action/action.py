@@ -15,6 +15,7 @@ from .classifier import Classify
 from ..sdk import Operation
 
 from PIL import Image
+import time
 
 from selenium.webdriver.chrome.options import Options
 from selenium import webdriver
@@ -37,7 +38,13 @@ def dump_args(func):
             func_args_str = re.sub(r' *self.*?=.*?, *', '', func_args_str)
             #print(f'{func.__module__}.{func.__qualname__} ( {func_args_str} )')
             print(f'{func.__name__} ({func_args_str})')
-        return func(*args, **kwargs)
+        start = time.time()
+        r = func(*args, **kwargs)
+        end = time.time()
+        time_used = end - start
+        if PRINT_LOG:
+            print(f'{func.__name__} time_used = {time_used}')
+        return r
     return wrapper
 
 
@@ -162,12 +169,13 @@ def getHomographyMatrix(img1, img2, threshold=0.0):
 
 _width = None
 
+@dump_args
 def screenShot(calibration=False):
     global _width
     if calibration:
         body = browser.find_element(by=By.XPATH, value="/html")
         print(body.size)
-        _width = body.size['width']
+        _width = int(body.size['width'])
     screenshot_png = browser.get_screenshot_as_png()
     nparr = np.fromstring(screenshot_png, np.uint8)
     screenshot = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
@@ -180,6 +188,7 @@ def screenShot(calibration=False):
     # return cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
     return screenshot
 
+@dump_args
 def clickAt(x, y):
     print("Point to click", x, y)
     actionChains = ActionChains(browser)
@@ -193,7 +202,6 @@ def moveTo(x, y):
     actionChains = ActionChains(browser)
     body = browser.find_element(by=By.XPATH, value="/html")
     actionChains.move_to_element_with_offset(body, x, y)
-    actionChains.pause(0.1)
     actionChains.perform()
 
 
@@ -300,13 +308,14 @@ class GUIInterface:
         # if not return False
         try:
             self.M = getHomographyMatrix(self.menuImg, screenShot(calibration=True), threshold=0.7)
-        except Exception:
-            print(Exception)
+        except Exception as e:
+            print(e)
         result = type(self.M) != type(None)
         if result:
             self.waitPos = np.int32(PosTransfer([100, 100], self.M))
         return result
 
+    @dump_args
     def _getHandTiles(self) -> List[Tuple[str, Tuple[int, int]]]:
         # return a list of my tiles' position
         result = []
