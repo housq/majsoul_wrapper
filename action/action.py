@@ -260,13 +260,14 @@ class GUIInterface:
 
     @dump_args
     def actionDiscardTile(self, tile: str, pos=-1):
-        retry = 3
+        retry = 10
+        is_retry = False
         while retry > 0:
             if pos >= 0 and self.is_tile_position_cache_valid:
                 x, y = self.hand_tile_pos[pos]
                 clickAt(x, y)
                 return True
-            L = self._getHandTiles()
+            L = self._getHandTiles(retry=is_retry)
             print("Hand tiles", L)
             print("tile to play", tile)
             for t, (x, y) in L:
@@ -274,6 +275,7 @@ class GUIInterface:
                     clickAt(x, y)
                     return True
             retry -= 1
+            is_retry = True
         raise Exception(
             'GUIInterface.discardTile tile not found. L:', L, 'tile:', tile)
         return False
@@ -316,15 +318,16 @@ class GUIInterface:
         return result
 
     @dump_args
-    def _getHandTiles(self) -> List[Tuple[str, Tuple[int, int]]]:
+    def _getHandTiles(self, retry=False) -> List[Tuple[str, Tuple[int, int]]]:
         # return a list of my tiles' position
         result = []
         assert(type(self.M) != type(None))
         screen_img1 = screenShot()
         # time.sleep(0.5)
         screen_img = screen_img1
-        # screen_img2 = screenShot()
-        # screen_img = np.minimum(screen_img1, screen_img2)  # 消除高光动画
+        if retry:
+            screen_img2 = screenShot()
+            screen_img = np.minimum(screen_img, screen_img2)  # 消除高光动画
         img = screen_img.copy()     # for calculation
         start = np.int32(PosTransfer([235, 1002], self.M))
         O = PosTransfer([0, 0], self.M)
