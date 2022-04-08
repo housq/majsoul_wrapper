@@ -188,6 +188,7 @@ def screenShot(calibration=False):
     # return cv2.cvtColor(screenshot, cv2.COLOR_BGR2RGB)
     return screenshot
 
+waitPos = None
 @dump_args
 def clickAt(x, y):
     print("Point to click", x, y)
@@ -197,7 +198,8 @@ def clickAt(x, y):
     actionChains.pause(0.1)
     actionChains.click()
     actionChains.pause(0.1)
-    actionChains.move_to_element_with_offset(body, 10, 10)
+    actionChains.move_to_element_with_offset(body, waitPos[0], waitPos[1])
+    actionChains.click()
     actionChains.perform()
 
 def moveTo(x, y):
@@ -310,13 +312,14 @@ class GUIInterface:
     def calibrateMenu(self):
         # if the browser is on the initial menu, set self.M and return to True
         # if not return False
+        global waitPos
         try:
             self.M = getHomographyMatrix(self.menuImg, screenShot(calibration=True), threshold=0.7)
         except Exception as e:
             print(e)
         result = type(self.M) != type(None)
         if result:
-            self.waitPos = np.int32(PosTransfer([100, 100], self.M))
+            waitPos = np.int32(PosTransfer([100, 100], self.M))
         return result
 
     @dump_args
