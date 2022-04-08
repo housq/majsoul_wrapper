@@ -196,6 +196,8 @@ def clickAt(x, y):
     actionChains.move_to_element_with_offset(body, x, y)
     actionChains.pause(0.1)
     actionChains.click()
+    actionChains.pause(0.1)
+    actionChains.move_to_element_with_offset(body, 10, 10)
     actionChains.perform()
 
 def moveTo(x, y):
