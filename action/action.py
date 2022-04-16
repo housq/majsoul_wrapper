@@ -473,7 +473,7 @@ class GUIInterface:
                 print('Similarity:', S)
                 clickAt(x, y)
 
-    def actionBeginGame(self, level: int):
+    def actionBeginGame(self, level: int, length: int = 0):
         # 从开始界面点击匹配对局, level=0~4 (铜/银/金/玉/王座之间)
         time.sleep(2)
         x, y = np.int32(PosTransfer(Layout.duanWeiChang, self.M))
@@ -492,5 +492,5 @@ class GUIInterface:
         x, y = np.int32(PosTransfer(Layout.menuButtons[level], self.M))
         clickAt(x, y)
         time.sleep(2)
-        x, y = np.int32(PosTransfer(Layout.menuButtons[0], self.M))  # 四人东
+        x, y = np.int32(PosTransfer(Layout.menuButtons[length], self.M))  # 四人东
         clickAt(x, y)
