@@ -101,8 +101,8 @@ class LiqiProto:
                             action_proto_obj = getattr(pb, action['name']).FromString(B)
                             action_dict_obj = MessageToDict(action_proto_obj)
                             action['data'] = action_dict_obj
-            result = {'id': msg_id, 'type': msg_type,
-                  'method': method_name, 'data': dict_obj}
+        result = {'id': msg_id, 'type': msg_type,
+                'method': method_name, 'data': dict_obj}
         self.tot += 1
         return result
 
