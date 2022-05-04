@@ -100,6 +100,14 @@ class MajsoulHandler:
             self.finalScore = [i['partPoint1'] for i in liqi_dict['data']['result']['players']]
             self.endGame()
             return
+        elif method == '.lq.FastTest.enterGame':
+            if 'gameRestore' in liqi_dict['data']:
+                for action in liqi_dict['data']['gameRestore']['actions']:
+                    action_dict = dict()
+                    action_dict['method'] = '.lq.ActionPrototype'
+                    action_dict['data'] = action
+                    self.parse(action_dict)
+            return 
         elif method == '.lq.ActionPrototype':
             if 'name' in liqi_dict['data']:
                 action_name = liqi_dict['data']['name']

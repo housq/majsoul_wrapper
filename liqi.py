@@ -95,7 +95,6 @@ class LiqiProto:
                 dict_obj = MessageToDict(proto_obj)
                 # parse embeded data in enterGame data
                 if method_name == '.lq.FastTest.enterGame' and 'gameRestore' in dict_obj:
-                    print(dict_obj)
                     for action in dict_obj['gameRestore']['actions']:
                         if 'data' in action:
                             B = base64.b64decode(action['data'])
