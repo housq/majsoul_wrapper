@@ -71,7 +71,9 @@ class MajsoulHandler:
         '.lq.FastTest.broadcastInGame',         # 表情
         '.lq.NotifyGameBroadcast',              # 表情
         #'.lq.NotifyPlayerConnectionState',
-        '.lq.FastTest.finishSyncGame'
+        '.lq.FastTest.finishSyncGame',
+        '.lq.Lobby.login',
+        '.lq.Lobby.heatbeat'
     }
 
     no_effect_action = {
