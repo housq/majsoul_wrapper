@@ -83,6 +83,8 @@ class MajsoulHandler:
     finalScore = None
 
     def parse(self, liqi_dict):
+        if 'method' not in liqi_dict:
+            return
         method = liqi_dict['method']
         if method == '.lq.FastTest.authGame':
             if liqi_dict['type'].value == MsgType.Req.value:
