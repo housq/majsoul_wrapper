@@ -71,9 +71,7 @@ class MajsoulHandler:
         '.lq.FastTest.broadcastInGame',         # 表情
         '.lq.NotifyGameBroadcast',              # 表情
         #'.lq.NotifyPlayerConnectionState',
-        '.lq.FastTest.finishSyncGame',
-        '.lq.Lobby.login',
-        '.lq.Lobby.heatbeat'
+        '.lq.FastTest.finishSyncGame'
     }
 
     no_effect_action = {
@@ -88,6 +86,8 @@ class MajsoulHandler:
         if 'method' not in liqi_dict:
             return
         method = liqi_dict['method']
+        if method.startswith('.lq.Lobby'):
+            return
         if method == '.lq.FastTest.authGame':
             if liqi_dict['type'].value == MsgType.Req.value:
                 # 初次进入游戏，请求对局信息
