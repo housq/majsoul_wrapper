@@ -55,10 +55,10 @@ def dump_args(func):
 class MajsoulHandler:
 
     no_effect_method = {
-        #'.lq.NotifyPlayerLoadGameReady',        # 通知游戏开始
+        '.lq.NotifyPlayerLoadGameReady',        # 通知游戏开始
         '.lq.FastTest.checkNetworkDelay',       # 心跳包
         #'.lq.FastTest.enterGame',               # 成功进入游戏
-        #'.lq.FastTest.fetchGamePlayerState',    # 检测所有玩家准备就绪
+        '.lq.FastTest.fetchGamePlayerState',    # 检测所有玩家准备就绪
         '.lq.FastTest.inputOperation',          # 发送出牌操作
         '.lq.FastTest.inputChiPengGang',        # 发送吃碰杠操作
         #'.lq.FastTest.confirmNewRound',         # 确认下一轮
@@ -71,6 +71,7 @@ class MajsoulHandler:
         '.lq.FastTest.broadcastInGame',         # 表情
         '.lq.NotifyGameBroadcast',              # 表情
         #'.lq.NotifyPlayerConnectionState',
+        '.lq.FastTest.finishSyncGame'
     }
 
     no_effect_action = {

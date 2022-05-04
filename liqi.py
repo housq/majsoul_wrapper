@@ -93,7 +93,16 @@ class LiqiProto:
                 method_name, liqi_pb2_res = self.res_type.pop(msg_id)
                 proto_obj = liqi_pb2_res.FromString(msg_block[1]['data'])
                 dict_obj = MessageToDict(proto_obj)
-        result = {'id': msg_id, 'type': msg_type,
+                # parse embeded data in enterGame data
+                if method_name == '.lq.FastTest.enterGame' and 'gameRestore' in dict_obj:
+                    print(dict_obj)
+                    for action in dict_obj['gameRestore']['actions']:
+                        if 'data' in action:
+                            B = base64.b64decode(action['data'])
+                            action_proto_obj = getattr(pb, action['name']).FromString(B)
+                            action_dict_obj = MessageToDict(action_proto_obj)
+                            action['data'] = action_dict_obj
+            result = {'id': msg_id, 'type': msg_type,
                   'method': method_name, 'data': dict_obj}
         self.tot += 1
         return result
